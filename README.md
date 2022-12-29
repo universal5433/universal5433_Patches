@@ -2,7 +2,7 @@
  * Bunch of important patches
  
 # Patching
-- Apply using `git patch am *.patch` or repopick if on lineage gerrit
+- Apply using `git am *.patch` or repopick if on lineage gerrit
 
 ## system/core
 * Handle empty thread names : [Source](https://review.lineageos.org/c/LineageOS/android_system_core/+/256219)

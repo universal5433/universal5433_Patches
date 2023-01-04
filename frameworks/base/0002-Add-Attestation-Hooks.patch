@@ -1,0 +1,188 @@
+From 05b3987d7b892ea50ba0eee865fe988c27ae90c1 Mon Sep 17 00:00:00 2001
+From: Danny Lin <danny@kdrag0n.dev>
+Date: Mon, 11 Oct 2021 19:59:51 -0700
+Subject: [PATCH] Spoof product name for Google Play Services (https://github.com/hentaiOS/platform_frameworks_base/commit/05b3987d7b892ea50ba0eee865fe988c27ae90c1)
+
+NB: This code is under the gmscompat package, but it does not depend on
+any code from gmscompat.
+
+Change-Id: Ic018c0d7abe4573143c3b92301a2625b91e6673a
+
+From fce9b65304829f16ad9bc87ad0cdd1472cb5a594 Mon Sep 17 00:00:00 2001
+From: Danny Lin <danny@kdrag0n.dev>
+Date: Mon, 1 Nov 2021 20:06:48 -0700
+Subject: [PATCH] Limit SafetyNet workarounds to unstable GMS process (https://github.com/hentaiOS/platform_frameworks_base/commit/fce9b65304829f16ad9bc87ad0cdd1472cb5a594)
+
+The unstable process is where SafetyNet attestation actually runs, so
+we only need to spoof the model in that process. Leaving other processes
+fixes various issues caused by model detection and flag provisioning,
+including screen-off Voice Match in Google Assistant, broken At a Glance
+weather and settings on Android 12, and more.
+
+Change-Id: Idcf663907a6c3d0408dbd45b1ac53c9eb4200df8
+
+From c9a086f9b635bf4e3e61fbd501ade464f8f5b713 Mon Sep 17 00:00:00 2001
+From: Dyneteve <dyneteve@hentaios.com>
+Date: Tue, 23 Aug 2022 18:57:05 +0200
+Subject: [PATCH] gmscompat: Apply the SafetyNet workaround to Play Store aswell (https://github.com/hentaiOS/platform_frameworks_base/commit/c9a086f9b635bf4e3e61fbd501ade464f8f5b713)
+
+Play Store is used for the new Play Integrity API, extend the hack
+to it aswell
+
+Test: Device Integrity and Basic Integrity passes.
+
+Signed-off-by: Dyneteve <dyneteve@hentaios.com>
+Change-Id: Id607cdff0b902f285a6c1b769c0a4ee4202842b1
+
+From 813f11628014a93d45f55dedd434fdddd9510eb0 Mon Sep 17 00:00:00 2001
+From: Dyneteve <dyneteve@hentaios.com>
+Date: Thu, 8 Sep 2022 14:39:52 +0200
+Subject: [PATCH] gmscompat: Use Nexus 6P fingerprint for CTS/Integrity (https://github.com/hentaiOS/platform_frameworks_base/commit/813f11628014a93d45f55dedd434fdddd9510eb0)
+
+Google seems to have patched the KM block to Play Store in record time,
+but is still not enforced for anything under android N.
+
+Since we moved to angler FP we don't need to spoof model to Play Store
+anymore, however the KM block is still needed.
+
+Test: Run Play Intregrity Attestation
+
+Signed-off-by: Dyneteve <dyneteve@hentaios.com>
+Change-Id: Ic2401a6e40ddfc4318a1d0faa87e42eb118ac3d1
+
+From e816188266359e45f44ff1632e4760f3ed68d37f Mon Sep 17 00:00:00 2001
+From: Dyneteve <dyneteve@hentaios.com>
+Date: Tue, 6 Dec 2022 15:59:08 +0100
+Subject: [PATCH] gmscompat: Use actual device model name (https://github.com/hentaiOS/platform_frameworks_base/commit/e816188266359e45f44ff1632e4760f3ed68d37f)
+
+Signed-off-by: Dyneteve <dyneteve@hentaios.com>
+Change-Id: I454654d87b3ea6286e12e9a9f5ed120f06cb2aa6
+
+diff --git a/0001-Add-Attestation-Hooks.patch b/0001-Add-Attestation-Hooks.patch
+new file mode 100644
+index 00000000..e69de29b
+diff --git a/core/java/android/app/Instrumentation.java b/core/java/android/app/Instrumentation.java
+index 721525d9..09dcad81 100644
+--- a/core/java/android/app/Instrumentation.java
++++ b/core/java/android/app/Instrumentation.java
+@@ -57,6 +57,8 @@ import android.view.WindowManagerGlobal;
+ 
+ import com.android.internal.content.ReferrerIntent;
+ 
++import com.android.internal.gmscompat.AttestationHooks;
++
+ import java.io.File;
+ import java.lang.annotation.Retention;
+ import java.lang.annotation.RetentionPolicy;
+@@ -1157,6 +1159,7 @@ public class Instrumentation {
+         Application app = getFactory(context.getPackageName())
+                 .instantiateApplication(cl, className);
+         app.attach(context);
++        AttestationHooks.initApplicationBeforeOnCreate(app);
+         return app;
+     }
+     
+@@ -1174,6 +1177,7 @@ public class Instrumentation {
+             ClassNotFoundException {
+         Application app = (Application)clazz.newInstance();
+         app.attach(context);
++        AttestationHooks.initApplicationBeforeOnCreate(app);
+         return app;
+     }
+ 
+diff --git a/core/java/com/android/internal/gmscompat/AttestationHooks.java b/core/java/com/android/internal/gmscompat/AttestationHooks.java
+new file mode 100644
+index 00000000..7649bb65
+--- /dev/null
++++ b/core/java/com/android/internal/gmscompat/AttestationHooks.java
+@@ -0,0 +1,90 @@
++/*
++ * Copyright (C) 2021 The Android Open Source Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++package com.android.internal.gmscompat;
++
++import android.app.Application;
++import android.os.Build;
++import android.os.SystemProperties;
++import android.util.Log;
++
++import java.lang.reflect.Field;
++import java.util.Arrays;
++
++/** @hide */
++public final class AttestationHooks {
++    private static final String TAG = "GmsCompat/Attestation";
++
++    private static final String PACKAGE_GMS = "com.google.android.gms";
++    private static final String PACKAGE_FINSKY = "com.android.vending";
++    private static final String PROCESS_UNSTABLE = "com.google.android.gms.unstable";
++
++    private static volatile boolean sIsGms = false;
++    private static volatile boolean sIsFinsky = false;
++
++    private AttestationHooks() { }
++
++    private static void setBuildField(String key, String value) {
++        try {
++            // Unlock
++            Field field = Build.class.getDeclaredField(key);
++            field.setAccessible(true);
++
++            // Edit
++            field.set(null, value);
++
++            // Lock
++            field.setAccessible(false);
++        } catch (NoSuchFieldException | IllegalAccessException e) {
++            Log.e(TAG, "Failed to spoof Build." + key, e);
++        }
++    }
++
++    private static void spoofBuildGms() {
++        // Alter model name and fingerprint to avoid hardware attestation enforcement
++        setBuildField("FINGERPRINT", "google/angler/angler:6.0/MDB08L/2343525:user/release-keys");
++        setBuildField("MODEL", Build.MODEL + "\u200b");
++    }
++
++    public static void initApplicationBeforeOnCreate(Application app) {
++        if (PACKAGE_GMS.equals(app.getPackageName()) &&
++                PROCESS_UNSTABLE.equals(Application.getProcessName())) {
++            sIsGms = true;
++            spoofBuildGms();
++        }
++
++        if (PACKAGE_FINSKY.equals(app.getPackageName())) {
++            sIsFinsky = true;
++        }
++    }
++
++    private static boolean isCallerSafetyNet() {
++        return Arrays.stream(Thread.currentThread().getStackTrace())
++                .anyMatch(elem -> elem.getClassName().contains("DroidGuard"));
++    }
++
++    public static void onEngineGetCertificateChain() {
++        // Check stack for SafetyNet
++        if (sIsGms && isCallerSafetyNet()) {
++            throw new UnsupportedOperationException();
++        }
++
++        // Check stack for PlayIntegrity
++        if (sIsFinsky) {
++            throw new UnsupportedOperationException();
++        }
++    }
++}

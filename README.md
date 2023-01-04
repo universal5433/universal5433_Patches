@@ -16,5 +16,9 @@
 * Add support for app signature spoofing : [Source](https://github.com/ProtonAOSP/android_frameworks_base)
 * Needed for MicroG Support `Optional patch`
 
+## frameworks/base
+* Add AttestationHooks : [Source](https://github.com/hentaiOS/platform_frameworks_base)
+* SafetyNet/CTS Fix `Optional patch`
+
 ## Repopick
 `repopick 256219 -P system/core -f` # Handle Empty Thread Name

@@ -12,6 +12,10 @@
 * Opt-out for TCP info parsing on legacy Kernels [Source](https://github.com/ArrowOS/android_packages_modules_NetworkStack/commit/19bbd6fb49222c3849e8f9f8f5f2c56c61bdfc81)
 * Needed to fix `TcpSocketTracker AAAAAAAAA*` Spam and `TcpSocketTracker: java.lang.IllegalArgumentException: Bad position 65648/3648`
 
+## frameworks/native
+* disable touch input while using a stylus : [Source](https://review.lineageos.org/c/LineageOS/android_frameworks_native/+/319404)
+* Enable back PalmRejection When using Stylus/S-PEN
+
 ## frameworks/base
 * Add support for app signature spoofing : [Source](https://github.com/ProtonAOSP/android_frameworks_base)
 * Needed for MicroG Support `Optional patch`
@@ -22,3 +26,5 @@
 
 ## Repopick
 `repopick 256219 -P system/core -f` # Handle Empty Thread Name
+
+`repopick 319404 -f` # disable touch input while using a stylus

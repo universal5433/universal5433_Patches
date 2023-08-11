@@ -28,3 +28,5 @@
 `repopick 256219 -P system/core -f` # Handle Empty Thread Name
 
 `repopick 319404 -f` # disable touch input while using a stylus
+
+`repopick --topic 18-snet -f` # SafetyNet/CTS AttestationHooks

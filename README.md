@@ -30,3 +30,5 @@
 `repopick 319404 -f` # disable touch input while using a stylus
 
 `repopick --topic 18-snet -f` # SafetyNet/CTS AttestationHooks
+
+`repopick 301619 -f` # EffectsFactory: add debug and trace wrappers for NXP LifeVibes
